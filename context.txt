@@ -1,0 +1,141 @@
+# Project Context: AI-Based Workforce Productivity & Wellbeing Analytics
+
+## Problem
+Healthcare and public sector organizations across the Nordics are facing staff shortages, burnout, and low morale due to aging populations and increasing service demands.
+Traditional HR systems only track attendance and leaves — they don’t detect early warning signs of stress, burnout, or workload imbalance.
+
+## Goal
+Develop a privacy-respecting AI system that continuously monitors workforce wellbeing indicators using **non-intrusive data from digital work patterns**, detects early burnout risks, and provides **real-time dashboards and recommendations** for managers.
+
+## High-Level Architecture
+- **Data Collection Layer (Agents)**: AI agents automatically fetch and preprocess anonymized, aggregated signals from multiple work-related data sources.
+- **Analytics & ML Layer**: Central models analyze these signals to detect stress, predict burnout, and recommend preventive interventions.
+- **Dashboard Layer**: Interactive manager dashboard for insights, alerts, and recommendations.
+
+## Core Principles
+- Privacy-first design: no personal or identifiable content collected.
+- All data aggregated and anonymized at source.
+- Consent-based integration for each data source.
+- Agents operate on company-managed endpoints (not individual devices).
+- Modular architecture: each agent runs as a Dockerized microservice.
+
+## Tech Stack (Preferred)
+- **Backend:** Python (FastAPI) for APIs + Celery for async tasks
+- **ML/Analytics:** PyTorch or TensorFlow + Scikit-learn + Pandas
+- **Containerization:** Docker
+- **Orchestration:** Kubernetes
+- **Frontend:** React + TailwindCSS (optional)
+- **Database:** PostgreSQL + TimescaleDB for time-series patterns
+- **Messaging:** Kafka / RabbitMQ for agent communication
+
+## Agent-Based Data Collection
+Each agent is a containerized microservice responsible for collecting and transforming specific types of data.
+Agents communicate securely with the central analytics layer via APIs or message queues.
+
+---
+
+## Agents Overview
+
+### 1. Calendar Agent
+Scrapes and summarizes work calendar patterns from Outlook / Google Calendar.
+Extracted features:
+- Average meeting hours per day
+- Number of back-to-back meetings
+- Free-time ratio between meetings
+- After-hours meeting frequency
+- Meeting sentiment (optional, via title text embeddings)
+- Meeting load trend week-over-week
+
+### 2. Communication Agent (Email & Chat)
+Aggregates metadata (not content) from Outlook, Teams, Slack.
+Extracted features:
+- Number of emails/messages sent and received
+- Response time distribution
+- Out-of-hours communication frequency
+- Thread length averages (collaboration density)
+- Incoming vs outgoing communication ratio
+- Silence gaps (periods of non-responsiveness)
+
+### 3. Task & Workflow Agent (Project Management)
+Integrates with Jira, Trello, or Asana.
+Extracted features:
+- Task completion rate
+- Average task age
+- Overtime tasks vs planned workload
+- Workload distribution per employee/team
+- Missed vs completed deadlines
+- Task-switching frequency
+
+### 4. Attendance & Shift Agent
+Pulls anonymized HRIS / time-tracking data.
+Extracted features:
+- Working hours vs planned hours
+- Late arrivals / early exits trend
+- Absence frequency
+- Shift overlap & imbalance
+- Consecutive workdays count
+
+### 5. Device Activity Agent
+Collects aggregated system-level telemetry (not keystrokes or personal data).
+Extracted features:
+- Active computer hours
+- Idle time ratio
+- Peak working intervals
+- Multi-device context switching
+- Application-switching frequency (stress indicator)
+
+### 6. Survey & Sentiment Agent
+Collects short weekly pulse surveys + optional mood indicators.
+Extracted features:
+- Mood index
+- Stress self-rating
+- Engagement delta over time
+- Qualitative keyword trend analysis
+
+### 7. Health & Bio Agent (optional, privacy-restricted)
+If organization-approved integrations (e.g., Fitbit API)
+Extracted features:
+- Sleep duration averages
+- Resting heart rate variability (HRV)
+- Step count / movement patterns
+- Work-hour activity correlation
+
+---
+
+## Analytics Layer (Model Inputs)
+
+Each agent outputs normalized features into a unified schema:
+- `employee_id` (hashed)
+- `timestamp`
+- `feature_name`
+- `feature_value`
+
+Analytics models use:
+- Time-series anomaly detection
+- Stress index computation
+- Burnout prediction (supervised learning)
+- Correlation network between workload and engagement
+- Organizational-level dashboards
+
+---
+
+## Example Insight
+> “Team B has experienced a 25% increase in after-hours activity and 30% reduction in meeting-free focus hours over the last two weeks — early burnout risk.”
+
+---
+
+## Deliverables for Copilot
+1. Generate modular Python microservices (one per agent) using FastAPI.
+2. Add standard Dockerfile for each agent.
+3. Use asyncio / Celery tasks for periodic scraping.
+4. Push aggregated, anonymized data to central API endpoint or message queue.
+5. Implement monitoring and auto-scaling configs (Kubernetes deployments).
+6. Build minimal dashboard API for team stress visualization.
+
+---
+
+## Developer Notes
+- No direct scraping of message content or private data.
+- Agents use OAuth or API tokens to access permitted metadata.
+- System should be deployable via Docker Compose or Kubernetes cluster.
+- Logs and telemetry anonymized by default.

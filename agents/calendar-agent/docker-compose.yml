@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  calendar-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: calendar-agent
+    ports:
+      - "8001:8001"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CENTRAL_API_URL=http://central-api:8000/api/features
+      - GOOGLE_CALENDAR_API=${GOOGLE_CALENDAR_API}
+      - OUTLOOK_CALENDAR_API=${OUTLOOK_CALENDAR_API}
+      - SCRAPING_INTERVAL_MINUTES=60
+    depends_on:
+      - redis
+    networks:
+      - wellbeing-network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: calendar-agent-worker
+    command: celery -A main.celery_app worker --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CENTRAL_API_URL=http://central-api:8000/api/features
+      - GOOGLE_CALENDAR_API=${GOOGLE_CALENDAR_API}
+      - OUTLOOK_CALENDAR_API=${OUTLOOK_CALENDAR_API}
+    depends_on:
+      - redis
+    networks:
+      - wellbeing-network
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: calendar-agent-beat
+    command: celery -A main.celery_app beat --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - wellbeing-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: calendar-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - wellbeing-network
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+networks:
+  wellbeing-network:
+    external: true
+
+volumes:
+  redis-data:
