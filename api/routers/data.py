@@ -11,6 +11,7 @@ import logging
 from database import get_db, OAuthToken, DataFetch
 from config import settings
 from integrations.microsoft_graph import MicrosoftGraphAPI
+from integrations.slack import SlackAPI
 from utils.encryption import decrypt_token
 
 logger = logging.getLogger(__name__)
@@ -219,4 +220,139 @@ async def get_fetch_history(
     
     except Exception as e:
         logger.error(f"Error getting fetch history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slack/fetch")
+async def fetch_slack_data(
+    user_id: str,
+    data_types: list[str],  # ["messages", "reactions", "stats"]
+    days_back: int = 14,
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch data from Slack API
+    """
+    try:
+        # Get valid access token
+        access_token = await get_valid_token(user_id, "slack", db)
+        
+        # Initialize Slack API client
+        slack_api = SlackAPI(access_token)
+        
+        # Calculate date range
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days_back)
+        
+        results = {}
+        
+        # Fetch user messages
+        if "messages" in data_types:
+            logger.info(f"Fetching Slack messages for user {user_id}")
+            
+            fetch_record = DataFetch(
+                user_id=user_id,
+                provider="slack",
+                data_type="messages",
+                fetch_start=start_date,
+                fetch_end=end_date,
+                status="in_progress"
+            )
+            db.add(fetch_record)
+            db.commit()
+            
+            try:
+                messages = await slack_api.get_user_messages(start_date, end_date)
+                results["messages"] = {
+                    "count": len(messages),
+                    "messages": messages
+                }
+                
+                fetch_record.status = "success"
+                fetch_record.records_fetched = len(messages)
+                db.commit()
+                
+            except Exception as e:
+                fetch_record.status = "failed"
+                fetch_record.error_message = str(e)
+                db.commit()
+                raise
+        
+        # Fetch reactions
+        if "reactions" in data_types:
+            logger.info(f"Fetching Slack reactions for user {user_id}")
+            
+            fetch_record = DataFetch(
+                user_id=user_id,
+                provider="slack",
+                data_type="reactions",
+                fetch_start=start_date,
+                fetch_end=end_date,
+                status="in_progress"
+            )
+            db.add(fetch_record)
+            db.commit()
+            
+            try:
+                reactions = await slack_api.get_reactions(start_date, end_date)
+                results["reactions"] = {
+                    "count": len(reactions),
+                    "reactions": reactions
+                }
+                
+                fetch_record.status = "success"
+                fetch_record.records_fetched = len(reactions)
+                db.commit()
+                
+            except Exception as e:
+                fetch_record.status = "failed"
+                fetch_record.error_message = str(e)
+                db.commit()
+                raise
+        
+        # Fetch statistics
+        if "stats" in data_types:
+            logger.info(f"Fetching Slack stats for user {user_id}")
+            
+            fetch_record = DataFetch(
+                user_id=user_id,
+                provider="slack",
+                data_type="stats",
+                fetch_start=start_date,
+                fetch_end=end_date,
+                status="in_progress"
+            )
+            db.add(fetch_record)
+            db.commit()
+            
+            try:
+                stats = await slack_api.get_user_stats(start_date, end_date)
+                results["stats"] = stats
+                
+                fetch_record.status = "success"
+                fetch_record.records_fetched = 1
+                db.commit()
+                
+            except Exception as e:
+                fetch_record.status = "failed"
+                fetch_record.error_message = str(e)
+                db.commit()
+                raise
+        
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "provider": "slack",
+            "date_range": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat()
+            },
+            "results": results
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching Slack data: {e}")
         raise HTTPException(status_code=500, detail=str(e))

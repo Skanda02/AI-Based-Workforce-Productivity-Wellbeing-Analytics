@@ -58,10 +58,14 @@ class Settings(BaseSettings):
     SLACK_SCOPES: List[str] = [
         "channels:history",
         "channels:read",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "mpim:history",
         "users:read",
         "users:read.email",
-        "im:history",
-        "reactions:read"
+        "reactions:read",
+        "team:read"
     ]
     
     # Jira OAuth2

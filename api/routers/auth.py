@@ -12,6 +12,7 @@ import secrets
 from database import get_db, User, OAuthToken
 from config import settings
 from integrations.microsoft_graph import MicrosoftGraphOAuth
+from integrations.slack import SlackOAuth
 from utils.encryption import encrypt_token, decrypt_token
 
 logger = logging.getLogger(__name__)
@@ -165,6 +166,14 @@ async def refresh_token(
                 "expires_at": token_record.expires_at.isoformat()
             }
         
+        elif provider == "slack":
+            # Slack tokens don't expire and don't have refresh tokens
+            # If token is invalid, user needs to re-authenticate
+            raise HTTPException(
+                status_code=400,
+                detail="Slack tokens do not expire. If invalid, please reconnect."
+            )
+        
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
     
@@ -232,4 +241,112 @@ async def disconnect_provider(
     
     except Exception as e:
         logger.error(f"Error disconnecting provider: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Slack OAuth2
+@router.get("/slack/login")
+async def slack_login(user_id: str, db: Session = Depends(get_db)):
+    """
+    Initiate Slack OAuth2 flow
+    """
+    try:
+        # Generate state for CSRF protection
+        state = secrets.token_urlsafe(32)
+        oauth_states[state] = {
+            "user_id": user_id,
+            "provider": "slack",
+            "created_at": datetime.utcnow()
+        }
+        
+        # Initialize Slack OAuth
+        slack_oauth = SlackOAuth()
+        auth_url = slack_oauth.get_authorization_url(state)
+        
+        logger.info(f"Redirecting user {user_id} to Slack login")
+        return RedirectResponse(url=auth_url)
+    
+    except Exception as e:
+        logger.error(f"Error initiating Slack OAuth: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/slack/callback")
+async def slack_callback(
+    code: str,
+    state: str,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Handle Slack OAuth2 callback
+    Exchange code for tokens and store securely
+    """
+    try:
+        # Validate state
+        if state not in oauth_states:
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+        
+        state_data = oauth_states.pop(state)
+        user_id = state_data["user_id"]
+        
+        # Exchange code for tokens
+        slack_oauth = SlackOAuth()
+        token_response = await slack_oauth.exchange_code_for_token(code)
+        
+        # Extract token from Slack response
+        # Slack returns: {"ok": true, "access_token": "...", "team": {...}, "authed_user": {...}}
+        access_token = token_response.get("access_token")
+        
+        if not access_token:
+            raise HTTPException(status_code=400, detail="No access token in Slack response")
+        
+        # Encrypt token before storage
+        encrypted_access_token = encrypt_token(access_token)
+        
+        # Slack tokens don't expire by default, but can be revoked
+        # Store team and user info in metadata
+        metadata = {
+            "team_id": token_response.get("team", {}).get("id"),
+            "team_name": token_response.get("team", {}).get("name"),
+            "authed_user_id": token_response.get("authed_user", {}).get("id"),
+            "scope": token_response.get("scope"),
+            "token_type": token_response.get("token_type")
+        }
+        
+        # Check if token already exists
+        existing_token = db.query(OAuthToken).filter(
+            OAuthToken.user_id == user_id,
+            OAuthToken.provider == "slack"
+        ).first()
+        
+        if existing_token:
+            # Update existing token
+            existing_token.access_token = encrypted_access_token
+            existing_token.scopes = token_response.get("scope", "").split(",")
+            existing_token.metadata = metadata
+            existing_token.updated_at = datetime.utcnow()
+        else:
+            # Create new token entry
+            new_token = OAuthToken(
+                user_id=user_id,
+                provider="slack",
+                access_token=encrypted_access_token,
+                refresh_token="",  # Slack doesn't use refresh tokens
+                expires_at=None,  # Slack tokens don't expire
+                scopes=token_response.get("scope", "").split(","),
+                metadata=metadata
+            )
+            db.add(new_token)
+        
+        db.commit()
+        
+        logger.info(f"Successfully stored Slack tokens for user {user_id}")
+        
+        # Redirect to frontend success page
+        frontend_url = settings.CORS_ORIGINS[0]
+        return RedirectResponse(url=f"{frontend_url}/integrations/success?provider=slack")
+    
+    except Exception as e:
+        logger.error(f"Error in Slack OAuth callback: {e}")
         raise HTTPException(status_code=500, detail=str(e))
