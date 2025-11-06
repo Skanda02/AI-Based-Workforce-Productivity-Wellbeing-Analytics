@@ -2,39 +2,9 @@
 
 OAuth2-based integration platform for workplace productivity and wellbeing analysis.
 
-## 🏗️ Architecture
+## Features
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│         (React/Next.js - User connects apps)                 │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     FastAPI Backend                          │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ OAuth2 Routes│  │ Data Fetching│  │   Features   │     │
-│  │              │  │              │  │  Extraction  │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-│         │                 │                  │              │
-│         ▼                 ▼                  ▼              │
-│  ┌─────────────────────────────────────────────────┐       │
-│  │         Encrypted Token Storage (PostgreSQL)    │       │
-│  └─────────────────────────────────────────────────┘       │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│              External APIs (OAuth2)                          │
-│  Microsoft Graph │ Slack │ Jira │ HRIS │ Surveys           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## 🚀 Features
-
-### ✅ Implemented
+### Implemented
 - **Microsoft Graph OAuth2 Flow**
   - Authorization URL generation
   - Code exchange for tokens
@@ -46,6 +16,19 @@ OAuth2-based integration platform for workplace productivity and wellbeing analy
   - Email metadata
   - Teams messages
   - User presence
+
+- **Slack OAuth2 Flow**
+  - Authorization URL generation
+  - Code exchange for tokens
+  - Secure encrypted storage
+  - Workspace information
+  
+- **Slack Data Fetching**
+  - User messages across channels
+  - Emoji reactions (sentiment proxy)
+  - Activity statistics
+  - Channel participation
+  - After-hours messaging patterns
   
 - **Database Models**
   - Users
@@ -54,16 +37,15 @@ OAuth2-based integration platform for workplace productivity and wellbeing analy
   - Features storage
   - Wellbeing scores
 
-### 🚧 Coming Soon
-- Slack integration
+### Coming Soon
 - Jira integration
 - HRIS integration
-- Survey platforms
+- Survey platforms (Typeform/Qualtrics)
 - Feature extraction pipeline
 - ML model integration
 - Background job scheduler
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 api/
@@ -81,14 +63,13 @@ api/
 │
 ├── integrations/
 │   ├── microsoft_graph.py # Microsoft 365 integration
-│   ├── slack.py          # Slack integration (TODO)
-│   └── jira.py           # Jira integration (TODO)
+│   └── slack.py          # Slack integration
 │
 └── utils/
     └── encryption.py      # Token encryption utilities
 ```
 
-## 🔧 Setup
+## Setup
 
 ### Prerequisites
 - Python 3.11+
@@ -141,7 +122,28 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
    - `ChannelMessage.Read.All`
 6. Copy **Client ID** and **Client Secret** to `.env`
 
-### 5. Run the API
+### 5. Slack App Setup
+
+1. Go to [Slack API](https://api.slack.com/apps)
+2. Click **Create New App** → **From scratch**
+3. Name your app and select workspace
+4. Navigate to **OAuth & Permissions**
+5. Add redirect URL: `http://localhost:8000/auth/slack/callback`
+6. Add **Bot Token Scopes**:
+   - `channels:history`
+   - `channels:read`
+   - `groups:history`
+   - `groups:read`
+   - `im:history`
+   - `mpim:history`
+   - `users:read`
+   - `users:read.email`
+   - `reactions:read`
+   - `team:read`
+7. Copy **Client ID** and **Client Secret** to `.env`
+8. Install app to your workspace
+
+### 6. Run the API
 
 ```bash
 uvicorn main:app --reload --port 8000
@@ -149,9 +151,9 @@ uvicorn main:app --reload --port 8000
 
 Visit: `http://localhost:8000/docs` for API documentation
 
-## 📡 API Endpoints
+## API Endpoints
 
-### Authentication
+### Microsoft Graph Authentication
 
 #### Initiate Microsoft OAuth
 ```http
@@ -194,12 +196,30 @@ POST /auth/refresh
 }
 ```
 
-#### Disconnect Provider
+### Slack Authentication
+
+#### Initiate Slack OAuth
+```http
+GET /auth/slack/login?user_id={user_id}
+```
+Redirects to Slack authorization page.
+
+### Universal Endpoints
+
+#### Check Auth Status (All Providers)
+```http
+GET /auth/status/{user_id}
+```
+Shows all connected providers (Microsoft, Slack, etc.)
+
+#### Disconnect Any Provider
 ```http
 DELETE /auth/disconnect/{provider}?user_id={user_id}
 ```
 
-### Data Fetching
+---
+
+## Data Fetching Endpoints
 
 #### Fetch Microsoft Data
 ```http
@@ -235,6 +255,41 @@ Response:
 GET /data/fetch-history/{user_id}?provider=microsoft&limit=50
 ```
 
+#### Fetch Slack Data
+```http
+POST /data/slack/fetch
+{
+  "user_id": "123",
+  "data_types": ["messages", "reactions", "stats"],
+  "days_back": 14
+}
+```
+
+Response:
+```json
+{
+  "status": "success",
+  "user_id": "123",
+  "provider": "slack",
+  "results": {
+    "messages": {
+      "count": 450,
+      "messages": [...]
+    },
+    "reactions": {
+      "count": 89,
+      "reactions": [...]
+    },
+    "stats": {
+      "total_messages": 450,
+      "unique_channels": 12,
+      "after_hours_ratio": 0.23,
+      "avg_messages_per_day": 32
+    }
+  }
+}
+```
+
 ### Users
 
 #### Create User
@@ -251,7 +306,7 @@ POST /users/
 GET /users/{user_id}
 ```
 
-## 🔐 Security
+## Security
 
 ### Token Encryption
 All OAuth tokens are encrypted using **Fernet** (symmetric encryption) before storage:
@@ -271,16 +326,16 @@ decrypted_token = cipher.decrypt(encrypted_token)
 ```
 
 ### Best Practices
-- ✅ Tokens encrypted at rest
-- ✅ HTTPS only in production
-- ✅ CORS properly configured
-- ✅ OAuth state parameter for CSRF protection
-- ✅ Token expiration tracking
-- ✅ Automatic token refresh
+- Tokens encrypted at rest
+- HTTPS only in production
+- CORS properly configured
+- OAuth state parameter for CSRF protection
+- Token expiration tracking
+- Automatic token refresh
 
-## 🧪 Testing
+## Testing
 
-Test the OAuth flow:
+### Test Microsoft OAuth Flow
 
 ```bash
 # 1. Create a user
@@ -294,7 +349,7 @@ http://localhost:8000/auth/microsoft/login?user_id=YOUR_USER_ID
 # 3. After auth, check status
 curl http://localhost:8000/auth/status/YOUR_USER_ID
 
-# 4. Fetch data
+# 4. Fetch Microsoft data
 curl -X POST http://localhost:8000/data/microsoft/fetch \
   -H "Content-Type: application/json" \
   -d '{
@@ -304,7 +359,26 @@ curl -X POST http://localhost:8000/data/microsoft/fetch \
   }'
 ```
 
-## 🗄️ Database Schema
+### Test Slack OAuth Flow
+
+```bash
+# 1. Visit in browser (use same user_id)
+http://localhost:8000/auth/slack/login?user_id=YOUR_USER_ID
+
+# 2. After auth, check status
+curl http://localhost:8000/auth/status/YOUR_USER_ID
+
+# 3. Fetch Slack data
+curl -X POST http://localhost:8000/data/slack/fetch \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id":"YOUR_USER_ID",
+    "data_types":["messages","reactions","stats"],
+    "days_back":14
+  }'
+```
+
+## Database Schema
 
 ### Users
 ```sql
@@ -344,15 +418,39 @@ error_message
 created_at
 ```
 
-## 📊 Next Steps
+## ML Features Extracted
 
-1. **Add more providers**: Slack, Jira, HRIS
-2. **Feature extraction**: Build ML feature pipeline
-3. **Background jobs**: Celery tasks for periodic fetching
-4. **ML models**: Burnout prediction, stress scoring
-5. **Frontend**: React dashboard for visualizations
+### From Microsoft Graph
+- Meetings per week
+- Average meeting duration
+- After-hours meeting ratio
+- Focus time (calendar gaps)
+- Email volume (sent/received)
+- Collaboration network size
 
-## 🐛 Troubleshooting
+### From Slack
+- Messages sent per day/hour
+- After-hours message ratio
+- Channel participation diversity
+- Emoji reactions (sentiment proxy)
+- Response patterns
+- Unique channels active in
+
+### Coming Soon
+- **Jira**: Task completion times, context switching
+- **HRIS**: Attendance, overtime, leave patterns
+- **Surveys**: Self-reported stress, sentiment analysis
+
+## Next Steps
+
+1. **Add Jira integration**: Task tracking and workload
+2. **Add HRIS integration**: Attendance and shift data
+3. **Feature extraction pipeline**: Automated ML feature computation
+4. **Background jobs**: Celery tasks for periodic fetching
+5. **ML models**: Burnout prediction, stress scoring
+6. **Frontend**: React dashboard for visualizations
+
+## Troubleshooting
 
 ### "Token expired" error
 Tokens refresh automatically. If manual refresh needed:
@@ -371,7 +469,3 @@ psql -l  # List databases
 
 ### OAuth redirect mismatch
 Ensure redirect URI in `.env` matches Azure app registration exactly.
-
-## 📝 License
-
-[Your License]
