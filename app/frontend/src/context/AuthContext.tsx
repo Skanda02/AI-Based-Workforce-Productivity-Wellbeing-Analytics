@@ -39,25 +39,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        throw new Error('Login failed');
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Server is not responding. Make sure backend is running on port 5000.');
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
       const userData = {
         id: data.id,
         email: data.email,
-        role: data.role,
+        role: data.role as UserRole,
         name: data.name,
       };
       setUser(userData);
       localStorage.setItem('authUser', JSON.stringify(userData));
+    } catch (error) {
+      setLoading(false);
+      throw error;
     } finally {
       setLoading(false);
     }

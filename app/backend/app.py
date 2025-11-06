@@ -12,6 +12,35 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# Ensure all responses are JSON
+@app.before_request
+def before_request():
+    pass
+
+@app.after_request
+def after_request(response):
+    # Ensure Content-Type is JSON for all responses
+    if response.status_code >= 400:
+        if response.content_type and 'application/json' not in response.content_type:
+            response.data = jsonify({'error': response.get_json() or 'An error occurred'}).get_data()
+            response.content_type = 'application/json'
+    return response
+
+# Error handler for bad requests
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({'error': 'Bad request'}), 400
+
+# Error handler for not found
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Not found'}), 404
+
+# Error handler for server errors
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': 'Internal server error'}), 500
+
 # Database Configuration - PostgreSQL (default) or SQLite (development)
 database_url = os.getenv('DATABASE_URL', None)
 
@@ -90,64 +119,86 @@ with app.app_context():
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authenticate user (Supervisor or Member) and return user data"""
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    
-    # Try to find supervisor first
-    supervisor = Supervisor.query.filter_by(email=email).first()
-    if supervisor and supervisor.check_password(password):
-        return jsonify(supervisor.to_dict()), 200
-    
-    # Try to find member
-    member = Member.query.filter_by(email=email).first()
-    if member and member.check_password(password):
-        return jsonify(member.to_dict()), 200
-    
-    return jsonify({'error': 'Invalid credentials'}), 401
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({'error': 'Email and password required'}), 400
+        
+        # Try to find supervisor first
+        supervisor = Supervisor.query.filter_by(email=email).first()
+        if supervisor and supervisor.check_password(password):
+            return jsonify(supervisor.to_dict()), 200
+        
+        # Try to find member
+        member = Member.query.filter_by(email=email).first()
+        if member and member.check_password(password):
+            return jsonify(member.to_dict()), 200
+        
+        return jsonify({'error': 'Invalid credentials'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/register', methods=['POST'])
 def register():
     """Register a new user (Supervisor or Member)"""
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    name = data.get('name')
-    role = data.get('role', 'member')  # 'supervisor' or 'member'
-    phone = data.get('phone', '')
-    department = data.get('department', '')
-    
-    # Check if user already exists in either table
-    existing_supervisor = Supervisor.query.filter_by(email=email).first()
-    existing_member = Member.query.filter_by(email=email).first()
-    
-    if existing_supervisor or existing_member:
-        return jsonify({'error': 'Email already registered'}), 409
-    
-    # Create new user based on role
-    if role == 'supervisor':
-        new_user = Supervisor(
-            id=str(uuid.uuid4()),
-            name=name,
-            email=email,
-            department=department,
-            phone=phone,
-            is_active=True
-        )
-    else:  # member
-        new_user = Member(
-            id=str(uuid.uuid4()),
-            name=name,
-            email=email,
-            phone=phone,
-            is_active=True
-        )
-    
-    new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
-    
-    return jsonify({'message': 'User registered successfully', 'user': new_user.to_dict()}), 201
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        email = data.get('email')
+        password = data.get('password')
+        name = data.get('name')
+        role = data.get('role', 'member')  # 'supervisor' or 'member'
+        phone = data.get('phone', '')
+        department = data.get('department', '')
+        
+        # Validate required fields
+        if not email or not password or not name:
+            return jsonify({'error': 'Email, password, and name are required'}), 400
+        
+        # Check if user already exists in either table
+        existing_supervisor = Supervisor.query.filter_by(email=email).first()
+        existing_member = Member.query.filter_by(email=email).first()
+        
+        if existing_supervisor or existing_member:
+            return jsonify({'error': 'Email already registered'}), 409
+        
+        # Create new user based on role
+        if role == 'supervisor':
+            new_user = Supervisor(
+                id=str(uuid.uuid4()),
+                name=name,
+                email=email,
+                department=department,
+                phone=phone,
+                is_active=True
+            )
+        else:  # member
+            new_user = Member(
+                id=str(uuid.uuid4()),
+                name=name,
+                email=email,
+                phone=phone,
+                is_active=True
+            )
+        
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify({'message': 'User registered successfully', 'user': new_user.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health():

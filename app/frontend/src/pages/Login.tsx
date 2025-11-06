@@ -9,10 +9,11 @@ import {
   Button, 
   Typography, 
   Alert, 
-  CircularProgress, 
-  Paper,
+  CircularProgress,
   Stack,
-  Divider
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import { Work } from '@mui/icons-material';
 
@@ -21,6 +22,7 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -31,22 +33,6 @@ export const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.message || 'Login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (demoEmail: string, demoPassword: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setError('');
-    setLoading(true);
-
-    try {
-      await login(demoEmail, demoPassword);
       navigate('/');
     } catch (err: any) {
       setError(err.message || 'Login failed.');
@@ -66,8 +52,18 @@ export const Login = () => {
         p: 2,
       }}
     >
-      <Container maxWidth="xs">
-        <Stack spacing={4}>
+      <Box
+        sx={{
+          border: '2px solid',
+          borderColor: 'primary.main',
+          borderRadius: 3,
+          p: 4,
+          bgcolor: 'background.paper',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        <Container maxWidth="xs">
+          <Stack spacing={4}>
           {/* Header */}
           <Box sx={{ textAlign: 'center' }}>
             <Box
@@ -163,88 +159,68 @@ export const Login = () => {
                 </Button>
               </Stack>
             </form>
+
+            <Box sx={{ textAlign: 'center', pt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Don't have an account?{' '}
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setOpenCreateDialog(true)}
+                  disabled={loading}
+                  sx={{
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    p: 0,
+                    ml: 0.5,
+                  }}
+                >
+                  Create Account
+                </Button>
+              </Typography>
+            </Box>
           </Card>
-
-          {/* Divider */}
-          <Divider sx={{ my: 1 }}>
-            <Typography variant="caption" sx={{ textTransform: 'uppercase', fontWeight: 600 }}>
-              Quick Access
-            </Typography>
-          </Divider>
-
-          {/* Demo Accounts */}
-          <Stack spacing={2}>
-            <Paper
-              onClick={() => handleDemoLogin('supervisor@example.com', 'password123')}
-              disabled={loading}
-              component="button"
-              sx={{
-                p: 2,
-                border: '2px solid',
-                borderColor: 'divider',
-                background: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  boxShadow: 3,
-                  borderColor: 'primary.main',
-                  transform: 'translateY(-2px)',
-                },
-                textAlign: 'left',
-              }}
-            >
-              <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                👥 Supervisor Account
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                supervisor@example.com
-              </Typography>
-            </Paper>
-
-            <Paper
-              onClick={() => handleDemoLogin('employee@example.com', 'password123')}
-              disabled={loading}
-              component="button"
-              sx={{
-                p: 2,
-                border: '2px solid',
-                borderColor: 'divider',
-                background: 'white',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.5 : 1,
-                transition: 'all 0.2s',
-                '&:hover': {
-                  boxShadow: 3,
-                  borderColor: 'primary.main',
-                  transform: 'translateY(-2px)',
-                },
-                textAlign: 'left',
-              }}
-            >
-              <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                👤 Employee Account
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                employee@example.com
-              </Typography>
-            </Paper>
           </Stack>
+        </Container>
+      </Box>
 
-          {/* Footer */}
-          <Typography
-            variant="caption"
-            sx={{
-              textAlign: 'center',
-              color: 'text.secondary',
-              fontWeight: 500,
-              mt: 2,
-            }}
-          >
-            © 2025 Workforce Wellbeing Analytics
-          </Typography>
-        </Stack>
-      </Container>
+      {/* Create Account Dialog */}
+      <Dialog open={openCreateDialog} onClose={() => setOpenCreateDialog(false)}>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1.25rem' }}>
+          Create Account
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 2, minWidth: 300 }}>
+            <Typography variant="body2" color="text.secondary">
+              Select the type of account you want to create:
+            </Typography>
+            <Stack spacing={1.5}>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  setOpenCreateDialog(false);
+                  navigate('/register/member');
+                }}
+                sx={{ py: 1.2, textTransform: 'none', fontSize: '1rem' }}
+              >
+                Member Login
+              </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  setOpenCreateDialog(false);
+                  navigate('/register/supervisor');
+                }}
+                sx={{ py: 1.2, textTransform: 'none', fontSize: '1rem' }}
+              >
+                Supervisor Login
+              </Button>
+            </Stack>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
