@@ -138,8 +138,14 @@ class WorkforceAnalyticsPredictor:
     def _load_pickle(self, filename: str):
         """Load a pickle file from the models directory."""
         filepath = self.models_dir / filename
-        with open(filepath, 'rb') as f:
-            return pickle.load(f)
+        try:
+            with open(filepath, 'rb') as f:
+                return pickle.load(f)
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+            print(f"File path: {filepath}")
+            print(f"File exists: {filepath.exists()}")
+            raise
     
     def prepare_features(self, employee_data: Union[Dict, pd.DataFrame]) -> pd.DataFrame:
         """

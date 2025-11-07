@@ -144,7 +144,7 @@ export const Login = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: 'background.default',
+        background: 'linear-gradient(135deg, #424242 0%, #212121 100%)',
         p: 2,
       }}
     >
@@ -154,7 +154,7 @@ export const Login = () => {
           borderColor: 'primary.main',
           borderRadius: 3,
           p: 4,
-          bgcolor: 'background.paper',
+          background: 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
         }}
       >

@@ -38,7 +38,7 @@ interface TeamMember {
   stressLevel: 'low' | 'medium' | 'high';
   trend: 'up' | 'down' | 'stable';
   lastActive: string;
-  firebaseId?: string;
+  firebaseId: string; // Made required instead of optional
   // Model predictions
   burnoutRisk?: number;
   efficiency?: number;
@@ -54,7 +54,7 @@ interface TeamMember {
 }
 
 interface TeamOverviewProps {
-  onViewMember: (memberId: number) => void;
+  onViewMember: (firebaseId: string) => void;
 }
 
 export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
@@ -265,24 +265,21 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
     );
   }
 
-  const getStressColor = (level: string) => {
-    switch (level) {
-      case 'low':
-        return '#2ecc71';
-      case 'medium':
-        return '#f39c12';
-      case 'high':
-        return '#e74c3c';
-      default:
-        return '#95a5a6';
+  const getStressColor = (stressLevel: string) => {
+    if (stressLevel === 'low') {
+        return '#1e7e45';  // Darker green
+    } else if (stressLevel === 'medium') {
+        return '#c77c11';  // Darker orange
+    } else {
+        return '#a93226';  // Darker red
     }
   };
 
   const getWellbeingStatus = (score: number) => {
-    if (score >= 80) return { label: 'Excellent', color: '#2ecc71' };
-    if (score >= 70) return { label: 'Good', color: '#3498db' };
-    if (score >= 60) return { label: 'Fair', color: '#f39c12' };
-    return { label: 'Needs Attention', color: '#e74c3c' };
+    if (score >= 80) return { label: 'Excellent', color: '#1e7e45' };
+    if (score >= 70) return { label: 'Good', color: '#1e5f8c' };
+    if (score >= 60) return { label: 'Fair', color: '#c77c11' };
+    return { label: 'Poor', color: '#a93226' };
   };
 
   const exhaustedMembers = teamMembers.filter(m => m.isExhausted).length;
@@ -307,73 +304,139 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
           mb: 4,
         }}
       >
-        <Card sx={{ boxShadow: 2 }}>
-          <CardContent>
+        {/* Total Members */}
+        <Card sx={{ 
+          boxShadow: 2, 
+          borderRadius: 2,
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: 'divider',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }}>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: '#7f8c8d' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
                   Total Members
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#3498db' }}>
+                <Typography variant="h3" sx={{ fontWeight: 700, mt: 1, color: '#1976d2' }}>
                   {teamMembers.length}
                 </Typography>
               </Box>
-              <Avatar sx={{ bgcolor: '#3498db15', color: '#3498db' }}>
-                <Psychology />
+              <Avatar sx={{ bgcolor: '#e3f2fd', color: '#1976d2', width: 56, height: 56 }}>
+                <Psychology sx={{ fontSize: 28 }} />
               </Avatar>
             </Box>
           </CardContent>
         </Card>
 
-        <Card sx={{ boxShadow: 2 }}>
-          <CardContent>
+        {/* Exhausted Members */}
+        <Card sx={{ 
+          boxShadow: 2, 
+          borderRadius: 2,
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: exhaustedMembers > 0 ? '#c0392b' : 'divider',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }}>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: '#7f8c8d' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
                   Exhausted Members
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#e74c3c' }}>
+                <Typography variant="h3" sx={{ 
+                  fontWeight: 700, 
+                  mt: 1, 
+                  color: exhaustedMembers > 0 ? '#c0392b' : '#27ae60' 
+                }}>
                   {exhaustedMembers}
                 </Typography>
               </Box>
-              <Avatar sx={{ bgcolor: '#e74c3c15', color: '#e74c3c' }}>
-                <Warning />
+              <Avatar sx={{ 
+                bgcolor: exhaustedMembers > 0 ? '#ffebee' : '#e8f5e9', 
+                color: exhaustedMembers > 0 ? '#c0392b' : '#27ae60', 
+                width: 56, 
+                height: 56 
+              }}>
+                <Warning sx={{ fontSize: 28 }} />
               </Avatar>
             </Box>
           </CardContent>
         </Card>
 
-        <Card sx={{ boxShadow: 2 }}>
-          <CardContent>
+        {/* High Stress */}
+        <Card sx={{ 
+          boxShadow: 2, 
+          borderRadius: 2,
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: highStressMembers > 0 ? '#e67e22' : 'divider',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }}>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: '#7f8c8d' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
                   High Stress
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#f39c12' }}>
+                <Typography variant="h3" sx={{ 
+                  fontWeight: 700, 
+                  mt: 1, 
+                  color: highStressMembers > 0 ? '#e67e22' : '#27ae60' 
+                }}>
                   {highStressMembers}
                 </Typography>
               </Box>
-              <Avatar sx={{ bgcolor: '#f39c1215', color: '#f39c12' }}>
-                <FitnessCenter />
+              <Avatar sx={{ 
+                bgcolor: highStressMembers > 0 ? '#fff3e0' : '#e8f5e9', 
+                color: highStressMembers > 0 ? '#e67e22' : '#27ae60', 
+                width: 56, 
+                height: 56 
+              }}>
+                <FitnessCenter sx={{ fontSize: 28 }} />
               </Avatar>
             </Box>
           </CardContent>
         </Card>
 
-        <Card sx={{ boxShadow: 2 }}>
-          <CardContent>
+        {/* Task Completion */}
+        <Card sx={{ 
+          boxShadow: 2, 
+          borderRadius: 2,
+          bgcolor: 'white',
+          border: '1px solid',
+          borderColor: 'divider',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            boxShadow: 3,
+            transform: 'translateY(-2px)',
+          },
+        }}>
+          <CardContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
-                <Typography variant="caption" sx={{ color: '#7f8c8d' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase' }}>
                   Avg Task Completion
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#2ecc71' }}>
+                <Typography variant="h3" sx={{ fontWeight: 700, mt: 1, color: '#27ae60' }}>
                   {avgTaskCompletion}%
                 </Typography>
               </Box>
-              <Avatar sx={{ bgcolor: '#2ecc7115', color: '#2ecc71' }}>
-                <Assignment />
+              <Avatar sx={{ bgcolor: '#e8f5e9', color: '#27ae60', width: 56, height: 56 }}>
+                <Assignment sx={{ fontSize: 28 }} />
               </Avatar>
             </Box>
           </CardContent>
@@ -397,7 +460,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
                 borderRadius: 2,
                 boxShadow: 2,
                 transition: 'all 0.3s ease',
-                borderLeft: `4px solid ${member.isExhausted ? '#e74c3c' : '#2ecc71'}`,
+                borderLeft: `4px solid ${member.isExhausted ? '#a93226' : '#1e7e45'}`,
                 '&:hover': {
                   boxShadow: 4,
                   transform: 'translateY(-2px)',
@@ -648,7 +711,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
                 <Box>
                   <Tooltip title="View Details">
                     <IconButton
-                      onClick={() => onViewMember(member.id)}
+                      onClick={() => onViewMember(member.firebaseId)}
                       sx={{
                         bgcolor: '#3498db15',
                         color: '#3498db',

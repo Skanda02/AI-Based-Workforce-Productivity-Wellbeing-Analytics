@@ -27,7 +27,7 @@ export const SupervisorDashboard = () => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [tabValue, setTabValue] = useState(0);
-  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
@@ -241,7 +241,7 @@ export const SupervisorDashboard = () => {
       <Box sx={{ flex: 1, overflow: 'auto' }}>
         {selectedMemberId ? (
           <MemberDetail
-            memberId={selectedMemberId}
+            firebaseId={selectedMemberId}
             onBack={() => setSelectedMemberId(null)}
           />
         ) : (
