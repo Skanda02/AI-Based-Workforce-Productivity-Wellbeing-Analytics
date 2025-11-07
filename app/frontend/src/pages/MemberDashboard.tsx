@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { WellbeingProfile } from '../components/WellbeingProfile';
-import { ProductivityMetrics } from '../components/ProductivityMetrics';
 import {
   Box,
   AppBar,
@@ -11,8 +10,6 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  Tabs,
-  Tab,
 } from '@mui/material';
 import { Work, Logout, AccountCircle } from '@mui/icons-material';
 
@@ -20,7 +17,6 @@ export const MemberDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [tabValue, setTabValue] = useState(0);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -47,7 +43,7 @@ export const MemberDashboard = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#fafafa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#fafafa' }}>
       {/* Header */}
       <AppBar position="static" sx={{ boxShadow: 2 }}>
         <Toolbar>
@@ -111,23 +107,7 @@ export const MemberDashboard = () => {
 
       {/* Main Content */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'white' }}>
-          <Tabs
-            value={tabValue}
-            onChange={(_, newValue) => setTabValue(newValue)}
-            sx={{ px: 3 }}
-          >
-            <Tab label="🧘 Wellbeing Profile" />
-            <Tab label="📊 Productivity Metrics" />
-          </Tabs>
-        </Box>
-
-        {/* Tab Content */}
-        <Box>
-          {tabValue === 0 && <WellbeingProfile />}
-          {tabValue === 1 && <ProductivityMetrics />}
-        </Box>
+        <WellbeingProfile />
       </Box>
     </Box>
   );

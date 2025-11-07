@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { TeamOverview } from '../components/TeamOverview';
+import { SupervisorProfile } from '../components/SupervisorProfile';
+import { MemberDetail } from '../components/MemberDetail';
 import {
   Box,
   AppBar,
@@ -9,6 +12,8 @@ import {
   Avatar,
   Menu,
   MenuItem,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Work, Logout, AccountCircle } from '@mui/icons-material';
 
@@ -16,6 +21,8 @@ export const SupervisorDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -42,7 +49,7 @@ export const SupervisorDashboard = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#fafafa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: '#fafafa' }}>
       {/* Header */}
       <AppBar position="static" sx={{ boxShadow: 2, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
         <Toolbar>
@@ -109,8 +116,35 @@ export const SupervisorDashboard = () => {
         </Toolbar>
       </AppBar>
 
-      {/* Main Content - Empty */}
-      <Box sx={{ flex: 1 }} />
+      {/* Main Content */}
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
+        {selectedMemberId ? (
+          <MemberDetail
+            memberId={selectedMemberId}
+            onBack={() => setSelectedMemberId(null)}
+          />
+        ) : (
+          <>
+            {/* Tabs */}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'white' }}>
+              <Tabs
+                value={tabValue}
+                onChange={(_, newValue) => setTabValue(newValue)}
+                sx={{ px: 3 }}
+              >
+                <Tab label="My Profile" />
+                <Tab label="Team Overview" />
+              </Tabs>
+            </Box>
+
+            {/* Tab Content */}
+            <Box>
+              {tabValue === 0 && <SupervisorProfile />}
+              {tabValue === 1 && <TeamOverview onViewMember={(id) => setSelectedMemberId(id)} />}
+            </Box>
+          </>
+        )}
+      </Box>
     </Box>
   );
 };
