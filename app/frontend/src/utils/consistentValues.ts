@@ -16,57 +16,70 @@ export const generateConsistentValue = (email: string, seed: number, min: number
 /**
  * TEST SCENARIOS FOR BURNOUT FEATURE TESTING
  * Assign specific values based on email to test different conditions
+ * 
+ * BURNOUT THRESHOLD: 70%
+ * OVERTIME ALERT: 3+ times per week
  */
 export const getTestScenarioValues = (email: string) => {
   const lowerEmail = email.toLowerCase();
   
-  // Scenario 1: Burnt out member (low wellbeing, high stress, low task completion)
+  // Scenario 1: CRITICAL - High burnout (75%) + 3 overtimes → Email to supervisor
   if (lowerEmail.includes('member1') || lowerEmail.includes('burnout')) {
     return {
-      wellbeingScore: 45,        // < 60 (burnt out)
+      wellbeingScore: 45,        // Low wellbeing
       stressLevel: 'high' as const,
-      taskCompletionRate: 55,    // < 75 (low completion)
+      taskCompletionRate: 55,
       isExhausted: true,
+      meetingHours: 18,          // High meeting hours
+      overtimeCount: 3,          // 3rd overtime → triggers email
     };
   }
   
-  // Scenario 2: Capable helper (high wellbeing, low stress, high task completion)
+  // Scenario 2: SAFE - Healthy member, good performance
   if (lowerEmail.includes('member2') || lowerEmail.includes('helper')) {
     return {
-      wellbeingScore: 85,        // >= 60 (healthy)
+      wellbeingScore: 85,        // High wellbeing
       stressLevel: 'low' as const,
-      taskCompletionRate: 92,    // > 75 (eligible to help)
+      taskCompletionRate: 92,
       isExhausted: false,
+      meetingHours: 10,
+      overtimeCount: 1,          // Safe overtime level
     };
   }
   
-  // Scenario 3: Struggling but not burnt out (medium wellbeing, low task completion)
+  // Scenario 3: MODERATE - Approaching threshold (68% burnout)
   if (lowerEmail.includes('member3') || lowerEmail.includes('struggling')) {
     return {
-      wellbeingScore: 68,        // >= 60 (not burnt out)
+      wellbeingScore: 68,
       stressLevel: 'medium' as const,
-      taskCompletionRate: 65,    // < 75 (NOT eligible to help)
+      taskCompletionRate: 65,
       isExhausted: false,
+      meetingHours: 14,
+      overtimeCount: 2,          // Close to overtime limit
     };
   }
   
-  // Scenario 4: Another capable helper
+  // Scenario 4: SAFE - Productive and healthy
   if (lowerEmail.includes('member4') || lowerEmail.includes('productive')) {
     return {
-      wellbeingScore: 78,        // >= 60 (healthy)
+      wellbeingScore: 78,
       stressLevel: 'low' as const,
-      taskCompletionRate: 88,    // > 75 (eligible to help)
+      taskCompletionRate: 88,
       isExhausted: false,
+      meetingHours: 12,
+      overtimeCount: 0,          // No overtime
     };
   }
   
-  // Scenario 5: High stress but good completion
+  // Scenario 5: CRITICAL - High burnout (75%) + excessive overtime (4) → Email to supervisor
   if (lowerEmail.includes('member5') || lowerEmail.includes('stressed')) {
     return {
-      wellbeingScore: 55,        // < 60 (burnt out)
+      wellbeingScore: 55,        // Low wellbeing
       stressLevel: 'high' as const,
-      taskCompletionRate: 82,    // > 75 but still burnt out
+      taskCompletionRate: 82,
       isExhausted: true,
+      meetingHours: 16,          // High meeting hours
+      overtimeCount: 4,          // Excessive overtime → triggers email
     };
   }
   
