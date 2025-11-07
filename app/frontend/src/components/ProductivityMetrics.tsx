@@ -134,7 +134,7 @@ export const ProductivityMetrics = () => {
   const efficiencyScore = getEfficiencyScore();
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', p: 3 }}>
       {/* Header with Efficiency Score */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>

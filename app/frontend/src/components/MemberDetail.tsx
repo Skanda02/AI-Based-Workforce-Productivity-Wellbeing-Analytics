@@ -112,7 +112,7 @@ export const MemberDetail = ({ memberId, onBack }: MemberDetailProps) => {
 
   if (!memberData) {
     return (
-      <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+      <Box sx={{ width: '100%', p: 3 }}>
         <Typography variant="h6" sx={{ color: '#7f8c8d' }}>
           Member not found
         </Typography>
@@ -125,7 +125,7 @@ export const MemberDetail = ({ memberId, onBack }: MemberDetailProps) => {
   );
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', p: 3 }}>
       {/* Breadcrumb Navigation */}
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
         <IconButton onClick={onBack} sx={{ bgcolor: '#ecf0f1' }}>

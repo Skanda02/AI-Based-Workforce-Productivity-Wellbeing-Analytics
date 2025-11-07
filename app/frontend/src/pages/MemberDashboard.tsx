@@ -148,7 +148,7 @@ export const MemberDashboard = () => {
       </AppBar>
 
       {/* Main Content */}
-      <Box sx={{ flex: 1, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, overflow: 'auto', bgcolor: '#fafafa' }}>
         {showAccount ? (
           // Account Details View
           <Box sx={{ maxWidth: 800, mx: 'auto', p: 3 }}>

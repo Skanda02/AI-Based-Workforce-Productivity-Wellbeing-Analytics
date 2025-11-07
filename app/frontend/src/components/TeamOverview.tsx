@@ -39,6 +39,9 @@ interface TeamMember {
   trend: 'up' | 'down' | 'stable';
   lastActive: string;
   firebaseId?: string;
+  // Model predictions
+  burnoutRisk?: number;
+  efficiency?: number;
   colleagueVotes?: {
     burnoutYes: number;
     burnoutNo: number;
@@ -140,19 +143,31 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
           
           console.log(`Member ${data.name} (${firebaseId}) votes:`, colleagueVotes);
           
+          const taskCompletionRate = testScenario?.taskCompletionRate ?? data.analytics?.taskCompletionRate ?? generateConsistentValue(email, 1, 60, 100);
+          const loggedHours = data.analytics?.loggedHours ?? generateConsistentValue(email, 2, 30, 45);
+          const wellbeingScore = testScenario?.wellbeingScore ?? data.analytics?.wellbeingScore ?? generateConsistentValue(email, 3, 50, 90);
+          const isExhausted = testScenario?.isExhausted ?? data.analytics?.isExhausted ?? (generateConsistentValue(email, 4, 0, 100) < 30);
+          
+          // Calculate burnout risk and efficiency (simple heuristics, can be replaced with model predictions)
+          const meetingHours = data.analytics?.meetingHours ?? generateConsistentValue(email, 5, 8, 18);
+          const burnoutRisk = data.analytics?.burnoutRisk ?? Math.min(100, Math.max(0, 100 - wellbeingScore + (meetingHours > 15 ? 20 : 0) + (isExhausted ? 30 : 0)));
+          const efficiency = data.analytics?.efficiency ?? Math.round((taskCompletionRate + Math.min(100, (loggedHours / 40) * 100)) / 2);
+          
           // Use test scenario, then real data, then fallback to consistent dummy values
           members.push({
             id: members.length + 1,
             firebaseId,
             name: data.name || 'Unknown',
             email: email,
-            taskCompletionRate: testScenario?.taskCompletionRate ?? data.analytics?.taskCompletionRate ?? generateConsistentValue(email, 1, 60, 100),
-            loggedHours: data.analytics?.loggedHours ?? generateConsistentValue(email, 2, 30, 45),
-            wellbeingScore: testScenario?.wellbeingScore ?? data.analytics?.wellbeingScore ?? generateConsistentValue(email, 3, 50, 90),
-            isExhausted: testScenario?.isExhausted ?? data.analytics?.isExhausted ?? (generateConsistentValue(email, 4, 0, 100) < 30),
+            taskCompletionRate,
+            loggedHours,
+            wellbeingScore,
+            isExhausted,
             stressLevel: testScenario?.stressLevel ?? data.analytics?.stressLevel ?? getConsistentStressLevel(email),
             trend: data.analytics?.trend ?? getConsistentTrend(email),
             lastActive: data.analytics?.lastActive ?? getConsistentLastActive(email),
+            burnoutRisk,
+            efficiency,
             colleagueVotes,
           });
         });
@@ -234,7 +249,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
 
   if (teamMembers.length === 0) {
     return (
-      <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+      <Box sx={{ width: '100%', p: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
           Team Overview
         </Typography>
@@ -277,7 +292,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
   );
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', p: 3 }}>
       {/* Header Stats */}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
         Team Overview
@@ -287,8 +302,8 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' },
-          gap: 2,
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 3,
           mb: 4,
         }}
       >
@@ -370,7 +385,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
         Team Members Details
       </Typography>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {teamMembers.map((member) => {
           const wellbeingStatus = getWellbeingStatus(member.wellbeingScore);
           
@@ -495,7 +510,7 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
                   <Box
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+                      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
                       gap: 3,
                     }}
                   >
@@ -571,6 +586,56 @@ export const TeamOverview = ({ onViewMember }: TeamOverviewProps) => {
                           bgcolor: '#ecf0f1',
                           '& .MuiLinearProgress-bar': {
                             bgcolor: member.loggedHours > 44 ? '#e74c3c' : '#3498db',
+                            borderRadius: 3,
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Burnout Risk */}
+                    <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          Burnout Risk
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                          {member.burnoutRisk ? `${member.burnoutRisk.toFixed(1)}%` : 'N/A'}
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={member.burnoutRisk || 0}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          bgcolor: '#ecf0f1',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: (member.burnoutRisk || 0) > 60 ? '#e74c3c' : (member.burnoutRisk || 0) > 30 ? '#f39c12' : '#2ecc71',
+                            borderRadius: 3,
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Efficiency */}
+                    <Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          Efficiency
+                        </Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                          {member.efficiency ? `${member.efficiency}/100` : 'N/A'}
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={member.efficiency || 0}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          bgcolor: '#ecf0f1',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: (member.efficiency || 0) >= 80 ? '#2ecc71' : (member.efficiency || 0) >= 60 ? '#3498db' : '#f39c12',
                             borderRadius: 3,
                           },
                         }}

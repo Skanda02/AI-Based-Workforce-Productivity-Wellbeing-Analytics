@@ -20,7 +20,7 @@ import {
 
 export const SupervisorProfile = () => {
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', p: 3 }}>
       {/* PRODUCTIVITY METRICS SECTION */}
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
         My Productivity Dashboard

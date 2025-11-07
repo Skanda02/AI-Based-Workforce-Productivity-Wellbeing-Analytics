@@ -81,13 +81,13 @@ export const WellbeingProfile = () => {
   const efficiency = analytics?.efficiency ?? Math.round((taskCompletionRate + Math.min(100, (loggedHours / 40) * 100)) / 2);
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ width: '100%', p: 3 }}>
       {/* Score Cards - Square boxes with circular progress */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
-          gap: 3,
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr', lg: 'repeat(3, 1fr)' },
+          gap: 4,
           mb: 4,
         }}
       >
@@ -231,8 +231,8 @@ export const WellbeingProfile = () => {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, 1fr)' },
-          gap: 2,
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(5, 1fr)' },
+          gap: 3,
           mb: 4,
         }}
       >
@@ -503,8 +503,8 @@ export const WellbeingProfile = () => {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
-            gap: 2,
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3,
           }}
         >
             <Paper
