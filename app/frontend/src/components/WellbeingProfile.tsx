@@ -7,7 +7,6 @@ import {
   Paper,
   CircularProgress,
   Chip,
-  Alert,
 } from '@mui/material';
 import {
   VideoCall,
@@ -52,8 +51,6 @@ export const WellbeingProfile = () => {
   
   // State for pipeline predictions
   const [pipelineData, setPipelineData] = useState<PipelineResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
   // Check for test scenario values first
   const testScenario = getTestScenarioValues(email);
@@ -63,28 +60,22 @@ export const WellbeingProfile = () => {
     return generateConsistentValue(email, seed, min, max);
   };
 
-  // Fetch predictions from pipeline
+  // Fetch predictions from pipeline (silently in background)
   useEffect(() => {
     const loadPredictions = async () => {
       if (!user?.id) {
-        setIsLoading(false);
         return;
       }
 
       try {
-        setIsLoading(true);
-        setError(null);
-        
-        // Fetch from pipeline API
+        // Fetch from pipeline API in background
         const predictions = await fetchPredictions(user.id, ['microsoft', 'slack', 'jira'], 14);
         setPipelineData(predictions);
         console.log('Pipeline predictions loaded:', predictions);
       } catch (err) {
         console.error('Error loading predictions:', err);
-        setError('Could not load predictions. Using fallback data.');
-        // Fall back to dummy data on error
-      } finally {
-        setIsLoading(false);
+        // Silently fail and use fallback data
+        setPipelineData(null);
       }
     };
 
@@ -129,30 +120,8 @@ export const WellbeingProfile = () => {
 
   return (
     <Box sx={{ width: '100%', p: 3 }}>
-      {/* Error notification */}
-      {error && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress size={60} sx={{ mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Analyzing your wellbeing data...
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Running 3 ML models in parallel
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
-      {/* Pipeline info banner */}
-      {pipelineData && !isLoading && (
+      {/* Pipeline info banner - only show if data loaded successfully */}
+      {pipelineData && (
         <Paper sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5', border: '1px solid #e0e0e0' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
             <Box>
@@ -179,8 +148,6 @@ export const WellbeingProfile = () => {
         </Paper>
       )}
 
-      {!isLoading && (
-        <>
       {/* Score Cards - Square boxes with circular progress */}
       <Box
         sx={{
@@ -701,8 +668,6 @@ export const WellbeingProfile = () => {
             )}
           </Box>
         </Box>
-      )}
-      </>
       )}
     </Box>
   );
